@@ -35,9 +35,32 @@
             background: #1e40af;
             transition: width 0.5s ease;
         }
+        /* Custom Alert for Tab Switching */
+        #tabAlert {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            background: #ef4444;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-weight: 800;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from { top: -100px; }
+            to { top: 20px; }
+        }
     </style>
 </head>
 <body class="min-h-screen">
+
+    <!-- Tab Warning Alert -->
+    <div id="tabAlert">⚠️ АНХААР! ЦОНХ ШИЛЖҮҮЛЖ БОЛОХГҮЙ! (Дараагийн удаа шууд дуусна)</div>
 
     <!-- Нэвтрэх хэсэг -->
     <div id="loginOverlay" class="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center p-8">
@@ -49,6 +72,9 @@
                 <option value="" disabled selected>Ангиа сонгоно уу</option>
                 <option value="7А">7А</option><option value="7Б">7Б</option><option value="7В">7В</option><option value="7Г">7Г</option><option value="7Д">7Д</option>
             </select>
+            <div class="bg-amber-50 text-amber-800 p-4 rounded-xl text-xs mb-6 border border-amber-200">
+                ⚠️ Санамж: Дасгал ажиллах явцад өөр цонх руу шилжвэл шалгалт шууд дуусахыг анхаарна уу!
+            </div>
             <button onclick="startApp()" class="w-full usa-gradient text-white py-4 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-transform">ЭХЛЭХ</button>
         </div>
     </div>
@@ -82,14 +108,22 @@
     </div>
 
     <!-- Үр дүнгийн цонх -->
-    <div id="resultModal" class="fixed inset-0 z-[3000] bg-blue-900/90 hidden flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-sm rounded-[40px] p-8 text-center shadow-2xl">
-            <h2 class="text-2xl font-black text-blue-900 mb-4">Баяр хүргэе!</h2>
-            <div class="bg-slate-50 py-8 rounded-3xl my-6 border">
-                <p class="text-[10px] font-black uppercase mb-1 tracking-widest text-slate-400">Таны оноо</p>
-                <div class="text-6xl font-black text-blue-700" id="finalScore">0/20</div>
+    <div id="resultModal" class="fixed inset-0 z-[3000] bg-blue-900/95 hidden flex items-center justify-center p-6 text-center">
+        <div class="bg-white w-full max-w-sm rounded-[40px] p-10 shadow-2xl overflow-hidden relative">
+            <div class="absolute top-0 left-0 w-full h-2 usa-gradient"></div>
+            <h2 id="resultTitle" class="text-2xl font-black text-blue-900 mb-2">Үр дүн</h2>
+            <p id="praiseText" class="text-blue-600 font-bold mb-6 italic"></p>
+            
+            <div class="bg-slate-50 py-8 rounded-3xl mb-8 border border-slate-100">
+                <p class="text-[10px] font-black uppercase mb-1 tracking-widest text-slate-400">Таны нийт оноо</p>
+                <div class="text-7xl font-black text-blue-800" id="finalScore">0/20</div>
             </div>
-            <button onclick="location.reload()" class="w-full bg-blue-900 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Дахин эхлэх</button>
+
+            <div id="violationNotice" class="hidden mb-6 p-3 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100">
+                ❌ Цонх шилжүүлсэн тул шалгалтыг хугацаанаас нь өмнө зогсоолоо.
+            </div>
+
+            <button onclick="location.reload()" class="w-full bg-blue-900 text-white py-5 rounded-2xl font-black uppercase shadow-lg active:scale-95 transition-all">Дахин эхлэх</button>
         </div>
     </div>
 
@@ -200,18 +234,39 @@
         let selectedLessons = [];
         let currentIndex = 0;
         let userAnswers = [];
+        let studentName = "";
+        let tabChangeCount = 0;
+        let isActive = false;
+
+        // Tab Visibility Monitoring
+        document.addEventListener("visibilitychange", function() {
+            if (isActive && document.hidden) {
+                tabChangeCount++;
+                if (tabChangeCount === 1) {
+                    const alertBox = document.getElementById('tabAlert');
+                    alertBox.style.display = 'block';
+                    setTimeout(() => alertBox.style.display = 'none', 5000);
+                } else if (tabChangeCount >= 2) {
+                    isActive = false;
+                    document.getElementById('violationNotice').classList.remove('hidden');
+                    finishQuiz(true); // Forced finish
+                }
+            }
+        });
 
         function startApp() {
-            const name = document.getElementById('studentName').value.trim();
+            const nameInput = document.getElementById('studentName').value.trim();
             const cls = document.getElementById('studentClass').value;
-            if(!name || !cls) return;
+            if(!nameInput || !cls) return;
             
+            studentName = nameInput;
             selectedLessons = shuffleArray([...allLessons]).slice(0, 20);
             userAnswers = new Array(20).fill(null).map(() => ({ value: "", isCorrect: null }));
 
             document.getElementById('loginOverlay').classList.add('hidden');
             document.getElementById('appContainer').classList.remove('hidden');
-            document.getElementById('displayStudent').textContent = `${name} (${cls})`;
+            document.getElementById('displayStudent').textContent = `${studentName} (${cls})`;
+            isActive = true;
             showQuestion(0);
         }
 
@@ -261,7 +316,6 @@
             if(!val) return;
             const correct = selectedLessons[currentIndex].en;
             
-            // Шалгахдаа бүх цэг, таслал, том жижиг үсгийг үл хэрэгсэнэ
             const cleanUser = val.toLowerCase().replace(/[.,!?'"]/g, "").replace(/\s+/g, " ").trim();
             const cleanCorrect = correct.toLowerCase().replace(/[.,!?'"]/g, "").replace(/\s+/g, " ").trim();
 
@@ -295,10 +349,27 @@
             document.getElementById('scoreText').textContent = `${score}/20`;
         }
 
-        function finishQuiz() {
-            checkCurrent();
+        function finishQuiz(wasForced = false) {
+            isActive = false;
+            if(!wasForced) checkCurrent();
+            
             const score = userAnswers.filter(a => a.isCorrect === true).length;
             document.getElementById('finalScore').textContent = `${score}/20`;
+            
+            // Generate Praise based on score
+            const praiseBox = document.getElementById('praiseText');
+            if (score === 20) {
+                praiseBox.innerHTML = `🔥 ${studentName}, чи бол АВАРГА! Бүх асуултанд алдаагүй хариуллаа. Гайхалтай!`;
+            } else if (score >= 16) {
+                praiseBox.innerHTML = `🌟 Маш сайн байна, ${studentName}! Чиний англи хэлний сонсгол өндөр түвшинд байна.`;
+            } else if (score >= 10) {
+                praiseBox.innerHTML = `👍 Сайн байна, ${studentName}. Бас нэг хичээвэл бүр илүү өндөр оноо авах боломжтой шүү.`;
+            } else if (score >= 5) {
+                praiseBox.innerHTML = `📚 Хичээгээрэй, ${studentName}. Өгүүлбэрүүдээ дахин нэг давтаад, дараа илүү сайн хийгээрэй.`;
+            } else {
+                praiseBox.innerHTML = `💪 Зүгээр ээ, ${studentName}. Шантралгүй дахин оролдоод үзээрэй. Чи чадна!`;
+            }
+
             document.getElementById('resultModal').classList.remove('hidden');
         }
     </script>
