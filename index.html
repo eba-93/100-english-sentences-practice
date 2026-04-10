@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>СБ-1 Англи хэл</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f0f4f8;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .app-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 15px 35px -5px rgba(30, 64, 175, 0.15);
+            padding: 30px 20px;
+            border-bottom: 5px solid #b91c1c;
+        }
+        .usa-gradient {
+            background: linear-gradient(135deg, #1e40af 0%, #b91c1c 100%);
+        }
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: #1e40af;
+            transition: width 0.5s ease;
+        }
+        /* Custom Alert for Tab Switching */
+        #tabAlert {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            background: #ef4444;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-weight: 800;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from { top: -100px; }
+            to { top: 20px; }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Tab Warning Alert -->
+    <div id="tabAlert">⚠️ АНХААР! ЦОНХ ШИЛЖҮҮЛЖ БОЛОХГҮЙ! (Дараагийн удаа шууд дуусна)</div>
+
+    <!-- Нэвтрэх хэсэг -->
+    <div id="loginOverlay" class="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center p-8">
+        <div class="w-full max-w-sm text-center">
+            <img src="logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SB1&background=1e40af&color=fff'" class="w-24 h-24 mx-auto mb-6 rounded-2xl shadow-lg">
+            <h1 class="text-2xl font-black text-blue-900 mb-6">СБ-1 Англи хэл</h1>
+            <input type="text" id="studentName" placeholder="Таны нэр" class="w-full p-4 mb-4 border-2 rounded-2xl text-center font-bold">
+            <select id="studentClass" class="w-full p-4 mb-6 border-2 rounded-2xl font-bold bg-white text-center">
+                <option value="" disabled selected>Ангиа сонгоно уу</option>
+                <option value="7А">7А</option><option value="7Б">7Б</option><option value="7В">7В</option><option value="7Г">7Г</option><option value="7Д">7Д</option>
+            </select>
+            <div class="bg-amber-50 text-amber-800 p-4 rounded-xl text-xs mb-6 border border-amber-200">
+                ⚠️ Санамж: Дасгал ажиллах явцад өөр цонх руу шилжвэл шалгалт шууд дуусахыг анхаарна уу!
+            </div>
+            <button onclick="startApp()" class="w-full usa-gradient text-white py-4 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-transform">ЭХЛЭХ</button>
+        </div>
+    </div>
+
+    <!-- Үндсэн хэсэг -->
+    <div id="appContainer" class="hidden min-h-screen flex flex-col">
+        <div class="sticky top-0 z-50 bg-white border-b p-4 shadow-sm">
+            <div class="max-w-2xl mx-auto flex justify-between items-center mb-4">
+                <div class="flex flex-col">
+                    <span id="displayStudent" class="font-black text-blue-900 text-sm">Сурагч</span>
+                    <span id="currentStepLabel" class="text-[10px] text-red-600 font-black uppercase">Асуулт 1/20</span>
+                </div>
+                <div class="bg-blue-900 text-white px-4 py-1 rounded-full text-xs font-black" id="scoreText">0/20</div>
+            </div>
+            <div class="max-w-2xl mx-auto progress-container">
+                <div id="progressBar" class="progress-bar-fill"></div>
+            </div>
+        </div>
+
+        <div class="flex-grow flex items-center justify-center p-4">
+            <div id="quizContainer" class="max-w-xl w-full"></div>
+        </div>
+
+        <div class="p-6 bg-white border-t sticky bottom-0">
+            <div class="max-w-xl mx-auto flex gap-4">
+                <button id="prevBtn" onclick="prevQuestion()" class="flex-1 bg-slate-100 py-4 rounded-2xl font-bold text-sm">⬅️ ӨМНӨХ</button>
+                <button id="nextBtn" onclick="nextQuestion()" class="flex-[2] usa-gradient text-white py-4 rounded-2xl font-black text-sm">ДАРААХ ➡️</button>
+                <button id="finishBtn" onclick="finishQuiz()" class="hidden flex-[2] bg-green-600 text-white py-4 rounded-2xl font-black text-sm">🏁 ДУУСГАХ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Үр дүнгийн цонх -->
+    <div id="resultModal" class="fixed inset-0 z-[3000] bg-blue-900/95 hidden flex items-center justify-center p-6 text-center">
+        <div class="bg-white w-full max-w-sm rounded-[40px] p-10 shadow-2xl overflow-hidden relative">
+            <div class="absolute top-0 left-0 w-full h-2 usa-gradient"></div>
+            <h2 id="resultTitle" class="text-2xl font-black text-blue-900 mb-2">Үр дүн</h2>
+            <p id="praiseText" class="text-blue-600 font-bold mb-6 italic"></p>
+            
+            <div class="bg-slate-50 py-8 rounded-3xl mb-8 border border-slate-100">
+                <p class="text-[10px] font-black uppercase mb-1 tracking-widest text-slate-400">Таны нийт оноо</p>
+                <div class="text-7xl font-black text-blue-800" id="finalScore">0/20</div>
+            </div>
+
+            <div id="violationNotice" class="hidden mb-6 p-3 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100">
+                ❌ Цонх шилжүүлсэн тул шалгалтыг хугацаанаас нь өмнө зогсоолоо.
+            </div>
+
+            <button onclick="location.reload()" class="w-full bg-blue-900 text-white py-5 rounded-2xl font-black uppercase shadow-lg active:scale-95 transition-all">Дахин эхлэх</button>
+        </div>
+    </div>
+
+    <script>
+        const allLessons = [
+            {id: 1, en: "I live in a modern house near the park."},
+            {id: 2, en: "The comfortable sofa is in front of the window."},
+            {id: 3, en: "My neighbour happily cleans the floor every morning."},
+            {id: 4, en: "The plant is on the coffee table in the living room."},
+            {id: 5, en: "We carefully do the washing up after dinner."},
+            {id: 6, en: "Yesterday I cleaned the kitchen quickly."},
+            {id: 7, en: "My sister tidied her room perfectly yesterday."},
+            {id: 8, en: "We visited the museum near the library last week."},
+            {id: 9, en: "He bought a bright rug for the bedroom."},
+            {id: 10, en: "They watched a movie at the cinema in town."},
+            {id: 11, en: "I was vacuuming the floor when my neighbour arrived."},
+            {id: 12, en: "She was cooking in the kitchen while I was cleaning the bathroom."},
+            {id: 13, en: "The children were playing noisily in the garden."},
+            {id: 14, en: "My father was repairing the roof carefully."},
+            {id: 15, en: "We were walking slowly near the park yesterday evening."},
+            {id: 16, en: "Tomorrow I will redecorate my living room."},
+            {id: 17, en: "We will visit the art gallery in town next week."},
+            {id: 18, en: "My family will stay in a comfortable hotel."},
+            {id: 19, en: "I will put the dishes in the dishwasher after dinner."},
+            {id: 20, en: "They will travel quickly to the shopping centre."},
+            {id: 21, en: "The beautiful garden is behind the house."},
+            {id: 22, en: "The old castle is opposite the church."},
+            {id: 23, en: "My brother made his bed early this morning."},
+            {id: 24, en: "She was reading a book near the window."},
+            {id: 25, en: "We will meet our neighbour at the café tomorrow."},
+            {id: 26, en: "I use my smartphone to check social media every day."},
+            {id: 27, en: "My brother listens to music with wireless earbuds."},
+            {id: 28, en: "She charges her phone battery every night."},
+            {id: 29, en: "We search the web for information on a website."},
+            {id: 30, en: "My father uses a desktop computer with a keyboard and screen."},
+            {id: 31, en: "Yesterday I downloaded new apps on my smartphone."},
+            {id: 32, en: "My friend bought a new Bluetooth speaker last week."},
+            {id: 33, en: "We saved many photos on the memory of the computer."},
+            {id: 34, en: "I read interesting articles on an online forum yesterday."},
+            {id: 35, en: "My sister shared photos on a social networking site."},
+            {id: 36, en: "I was listening to podcasts when the internet connection became slow."},
+            {id: 37, en: "My brother was playing online games when the computer crashed."},
+            {id: 38, en: "She was editing videos on her laptop yesterday evening."},
+            {id: 39, en: "We were chatting online while the teacher was speaking."},
+            {id: 40, en: "He was trying to fix a problem with the printer."},
+            {id: 41, en: "Tomorrow I will buy a new tablet."},
+            {id: 42, en: "I will install a computer program on my desktop computer."},
+            {id: 43, en: "We will upload videos to the website tomorrow."},
+            {id: 44, en: "My friend will send messages and texts later."},
+            {id: 45, en: "I will connect my USB cable to charge my phone."},
+            {id: 46, en: "The screen of my laptop is bright and modern."},
+            {id: 47, en: "This hi-tech device is waterproof and very useful."},
+            {id: 48, en: "My phone battery died yesterday."},
+            {id: 49, en: "The printer didn’t work, so I fixed the problem."},
+            {id: 50, en: "We will keep in touch and communicate online in the future."},
+            {id: 51, en: "I have a cute cat as my pet."},
+            {id: 52, en: "My cat has soft fur and a long tail."},
+            {id: 53, en: "My sister feeds the rabbit every morning."},
+            {id: 54, en: "The parrot has colourful feathers and a sharp beak."},
+            {id: 55, en: "We look after our pet carefully."},
+            {id: 56, en: "Yesterday I saw a zebra at the zoo."},
+            {id: 57, en: "My friend picked up a small kitten yesterday."},
+            {id: 58, en: "We visited the aquarium last week."},
+            {id: 59, en: "I cleaned the cage of my hamster yesterday."},
+            {id: 60, en: "The monkey climbed a tree quickly."},
+            {id: 61, en: "The elephant was walking slowly in the zoo."},
+            {id: 62, en: "The tiger was sleeping in its cage."},
+            {id: 63, en: "Children were watching the penguin happily."},
+            {id: 64, en: "A butterfly was flying around the flowers."},
+            {id: 65, en: "The giraffe was eating leaves from a tall tree."},
+            {id: 66, en: "Tomorrow we will visit the zoo again."},
+            {id: 67, en: "I will buy food for my hamster tomorrow."},
+            {id: 68, en: "We will take our dog for a walk in the park."},
+            {id: 69, en: "My friend will work with animals in the future."},
+            {id: 70, en: "I will visit the animal rescue centre next week."},
+            {id: 71, en: "I have seen a polar bear at the zoo."},
+            {id: 72, en: "We have visited the zoo many times."},
+            {id: 73, en: "My family has looked after a rabbit for two years."},
+            {id: 74, en: "I have fed my cat today."},
+            {id: 75, en: "We have learned a lot about wild animals."},
+            {id: 76, en: "Do you wear a baseball cap in summer?"},
+            {id: 77, en: "I do not wear leather boots in winter."},
+            {id: 78, en: "Does she like wearing a striped dress?"},
+            {id: 79, en: "He does not wear glasses every day."},
+            {id: 80, en: "Do they buy new shoes on a shopping trip?"},
+            {id: 81, en: "Did you wear a jacket yesterday?"},
+            {id: 82, en: "I did not buy a cotton shirt last week."},
+            {id: 83, en: "Did she wear a beautiful necklace at the party?"},
+            {id: 84, en: "He did not wear his black coat yesterday."},
+            {id: 85, en: "Did they celebrate the festival in a fancy costume?"},
+            {id: 86, en: "Were you wearing snow boots in the winter?"},
+            {id: 87, en: "She was not wearing a baggy sweater yesterday."},
+            {id: 88, en: "Were they wearing dark sunglasses outdoors?"},
+            {id: 89, en: "Will you wear a warm coat next winter?"},
+            {id: 90, en: "I will not wear tight jeans tomorrow."},
+            {id: 91, en: "Do you like listening to rock music in the evening?"},
+            {id: 92, en: "I do not read film reviews on social media."},
+            {id: 93, en: "Does your brother play the guitar in a band?"},
+            {id: 94, en: "She does not enjoy hip hop music very much."},
+            {id: 95, en: "Did they watch a documentary about culture yesterday?"},
+            {id: 96, en: "I did not watch the talent show last night."},
+            {id: 97, en: "Were you watching a video clip when I called you?"},
+            {id: 98, en: "They were not reading the news headline in the newspaper."},
+            {id: 99, en: "Will she sing a song on stage tomorrow?"},
+            {id: 100, en: "We will not watch the reality show tonight."}
+        ];
+
+        let selectedLessons = [];
+        let currentIndex = 0;
+        let userAnswers = [];
+        let studentName = "";
+        let tabChangeCount = 0;
+        let isActive = false;
+
+        // Tab Visibility Monitoring
+        document.addEventListener("visibilitychange", function() {
+            if (isActive && document.hidden) {
+                tabChangeCount++;
+                if (tabChangeCount === 1) {
+                    const alertBox = document.getElementById('tabAlert');
+                    alertBox.style.display = 'block';
+                    setTimeout(() => alertBox.style.display = 'none', 5000);
+                } else if (tabChangeCount >= 2) {
+                    isActive = false;
+                    document.getElementById('violationNotice').classList.remove('hidden');
+                    finishQuiz(true); // Forced finish
+                }
+            }
+        });
+
+        function startApp() {
+            const nameInput = document.getElementById('studentName').value.trim();
+            const cls = document.getElementById('studentClass').value;
+            if(!nameInput || !cls) return;
+            
+            studentName = nameInput;
+            selectedLessons = shuffleArray([...allLessons]).slice(0, 20);
+            userAnswers = new Array(20).fill(null).map(() => ({ value: "", isCorrect: null }));
+
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+            document.getElementById('displayStudent').textContent = `${studentName} (${cls})`;
+            isActive = true;
+            showQuestion(0);
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function showQuestion(index) {
+            currentIndex = index;
+            const item = selectedLessons[index];
+            const answerData = userAnswers[index];
+            const container = document.getElementById('quizContainer');
+            
+            container.innerHTML = `
+                <div class="app-card">
+                    <div class="text-center mb-8">
+                        <span class="inline-block px-4 py-1 bg-red-50 text-red-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-4">Task ${index + 1}</span>
+                        <h3 class="text-xl font-black text-blue-900">Сонсоод бичнэ үү</h3>
+                    </div>
+                    <button onclick="playAudio(${item.id}, this)" class="w-full usa-gradient text-white py-6 rounded-2xl font-black flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl mb-8">
+                        🔊 АУДИО СОНСОХ
+                    </button>
+                    <div class="space-y-4">
+                        <input type="text" id="currentInput" value="${answerData.value}" placeholder="Өгүүлбэрийг энд бичнэ үү..." 
+                               class="w-full p-5 bg-slate-50 border-2 ${answerData.isCorrect === true ? 'border-green-500 bg-green-50' : (answerData.isCorrect === false ? 'border-red-500 bg-red-50' : 'border-slate-200')} rounded-2xl font-bold outline-none text-lg"
+                               oninput="userAnswers[${index}].value = this.value">
+                        <div id="feedbackBox">
+                            ${answerData.isCorrect !== null ? renderFeedback(answerData.isCorrect, item.en) : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            updateNav();
+        }
+
+        function playAudio(id, btn) {
+            const audio = new Audio(`${id}.mp3`);
+            audio.play().catch(() => alert(`Алдаа: ${id}.mp3 файлыг олсонгүй.`));
+        }
+
+        function checkCurrent() {
+            const val = userAnswers[currentIndex].value.trim();
+            if(!val) return;
+            const correct = selectedLessons[currentIndex].en;
+            
+            const cleanUser = val.toLowerCase().replace(/[.,!?'"]/g, "").replace(/\s+/g, " ").trim();
+            const cleanCorrect = correct.toLowerCase().replace(/[.,!?'"]/g, "").replace(/\s+/g, " ").trim();
+
+            const isCorrect = cleanUser === cleanCorrect;
+            userAnswers[currentIndex].isCorrect = isCorrect;
+            
+            showQuestion(currentIndex);
+            updateScore();
+        }
+
+        function renderFeedback(isCorrect, correct) {
+            return isCorrect ? 
+                `<p class="text-sm font-black p-4 rounded-xl bg-green-50 text-green-700 mt-2">✅ ГАЙХАЛТАЙ! Зөв байна.</p>` : 
+                `<div class="mt-2 p-4 rounded-xl bg-red-50 text-red-700"><p class="text-[10px] font-black uppercase opacity-60">Зөв хариулт:</p><p class="text-sm font-black">${correct}</p></div>`;
+        }
+
+        function nextQuestion() { checkCurrent(); if(currentIndex < 19) showQuestion(currentIndex + 1); }
+        function prevQuestion() { if(currentIndex > 0) showQuestion(currentIndex - 1); }
+
+        function updateNav() {
+            document.getElementById('prevBtn').style.opacity = currentIndex === 0 ? "0.3" : "1";
+            document.getElementById('nextBtn').classList.toggle('hidden', currentIndex === 19);
+            document.getElementById('finishBtn').classList.toggle('hidden', currentIndex !== 19);
+            document.getElementById('currentStepLabel').textContent = `Асуулт ${currentIndex + 1}/20`;
+            const progress = ((userAnswers.filter(a => a.value !== "").length) / 20) * 100;
+            document.getElementById('progressBar').style.width = progress + "%";
+        }
+
+        function updateScore() {
+            const score = userAnswers.filter(a => a.isCorrect === true).length;
+            document.getElementById('scoreText').textContent = `${score}/20`;
+        }
+
+        function finishQuiz(wasForced = false) {
+            isActive = false;
+            if(!wasForced) checkCurrent();
+            
+            const score = userAnswers.filter(a => a.isCorrect === true).length;
+            document.getElementById('finalScore').textContent = `${score}/20`;
+            
+            // Generate Praise based on score
+            const praiseBox = document.getElementById('praiseText');
+            if (score === 20) {
+                praiseBox.innerHTML = `🔥 ${studentName}, чи бол АВАРГА! Бүх асуултанд алдаагүй хариуллаа. Гайхалтай!`;
+            } else if (score >= 16) {
+                praiseBox.innerHTML = `🌟 Маш сайн байна, ${studentName}! Чиний англи хэлний сонсгол өндөр түвшинд байна.`;
+            } else if (score >= 10) {
+                praiseBox.innerHTML = `👍 Сайн байна, ${studentName}. Бас нэг хичээвэл бүр илүү өндөр оноо авах боломжтой шүү.`;
+            } else if (score >= 5) {
+                praiseBox.innerHTML = `📚 Хичээгээрэй, ${studentName}. Өгүүлбэрүүдээ дахин нэг давтаад, дараа илүү сайн хийгээрэй.`;
+            } else {
+                praiseBox.innerHTML = `💪 Зүгээр ээ, ${studentName}. Шантралгүй дахин оролдоод үзээрэй. Чи чадна!`;
+            }
+
+            document.getElementById('resultModal').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
