@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Super Listening Challenge!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Lexend:wght@400;700;900&display=swap');
+        
+        body { 
+            font-family: 'Lexend', sans-serif; 
+            touch-action: manipulation;
+            background-color: #f0f4f8;
+            background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .header-font { font-family: 'Fredoka One', cursive; }
+        .card-pop { border: 4px solid #1e293b; box-shadow: 8px 8px 0px #1e293b; }
+        .btn-pop { border: 3px solid #1e293b; box-shadow: 4px 4px 0px #1e293b; transition: all 0.1s ease; }
+        .btn-pop:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px #1e293b; }
+
+        .step-circle {
+            width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; font-weight: 900; font-size: 14px; border: 2px solid #1e293b;
+            transition: all 0.3s ease;
+        }
+
+        .step-pending { background: white; color: #1e293b; }
+        .step-current { background: #3b82f6; color: white; border-color: #1d4ed8; transform: scale(1.1); }
+        .step-correct { background: #22c55e; color: white; border-color: #15803d; }
+        .step-wrong { background: #ef4444; color: white; border-color: #b91c1c; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .floating { animation: floating 3s ease-in-out infinite; }
+        @keyframes floating { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div id="app" class="max-w-xl mx-auto min-h-screen flex flex-col p-4">
+        <header class="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl border-4 border-slate-800 shadow-[4px_4px_0px_#1e293b]">
+            <div class="flex items-center gap-2" onclick="location.reload()" style="cursor: pointer;">
+                <span class="text-2xl">🇺🇸</span>
+                <h1 class="header-font text-xl text-slate-800 tracking-wider">SUPER LISTENING</h1>
+                <span class="text-2xl">🇬🇧</span>
+            </div>
+            <div id="header-actions"></div>
+        </header>
+        <div id="main-content" class="flex-grow flex flex-col justify-center"></div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="modal" class="modal-overlay">
+        <div class="bg-white rounded-[2rem] border-4 border-slate-800 p-8 max-w-sm w-full shadow-[8px_8px_0px_#1e293b] text-center">
+            <div class="text-4xl mb-4" id="modal-icon">⚠️</div>
+            <p id="modal-msg" class="mb-6 text-slate-600 font-bold text-lg"></p>
+            <button onclick="closeModal()" class="w-full bg-yellow-400 text-slate-800 py-4 rounded-2xl font-black border-4 border-slate-800 uppercase">Ойлголоо!</button>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="admin-modal" class="modal-overlay">
+        <div class="bg-white rounded-[2rem] border-4 border-slate-800 p-8 max-w-sm w-full shadow-[8px_8px_0px_#1e293b]">
+            <h3 class="header-font text-xl mb-6 text-center text-slate-800 uppercase">Багш нэвтрэх</h3>
+            <input type="password" id="admin-pass" class="w-full p-4 border-4 border-slate-800 rounded-2xl mb-4 font-bold outline-none" placeholder="Нууц код">
+            <div class="flex gap-3">
+                <button onclick="closeAdminModal()" class="flex-1 bg-slate-100 py-4 rounded-2xl font-bold">Буцах</button>
+                <button onclick="submitAdminPass()" class="flex-1 bg-blue-500 text-white py-4 rounded-2xl font-bold border-4 border-slate-800 shadow-[2px_2px_0px_#1e293b]">Орох</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'listening-app-v2';
+
+        window.db = db;
+        window.auth = auth;
+        window.appId = appId;
+        window.firestore = { collection, addDoc, onSnapshot, serverTimestamp, query };
+
+        const initAuth = async () => {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+        };
+        initAuth().catch(console.error);
+
+        onAuthStateChanged(auth, (user) => {
+            window.state.user = user;
+            if (user && window.state.view === 'admin') {
+                window.fetchResults();
+            }
+        });
+    </script>
+
+    <script>
+        const SENTENCE_DATA = [
+            { id: 1, en: "I live in a modern house near the park.", mn: "Би цэцэрлэгт хүрээлэнгийн ойролцоо орчин үеийн байшинд амьдардаг." },
+            { id: 2, en: "The comfortable sofa is in front of the window.", mn: "Тухтай буйдан цонхны өмнө байна." },
+            { id: 3, en: "My neighbour happily cleans the floor every morning.", mn: "Миний хөрш өглөө бүр шалаа баяртайгаар цэвэрлэдэг." },
+            { id: 4, en: "The plant is on the coffee table in the living room.", mn: "Ургамал зочны өрөөний кофены ширээн дээр байна." },
+            { id: 5, en: "We carefully do the washing up after dinner.", mn: "Бид оройн хоолны дараа аяга тавгаа болгоомжтой угаадаг." },
+            { id: 6, en: "Yesterday I cleaned the kitchen quickly.", mn: "Өчигдөр би гал тогоогоо хурдан цэвэрлэсэн." },
+            { id: 7, en: "My sister tidied her room perfectly yesterday.", mn: "Миний дүү өчигдөр өрөөгөө маш сайн цэгцэлсэн." },
+            { id: 8, en: "We visited the museum near the library last week.", mn: "Бид өнгөрсөн долоо хоногт номын сангийн ойролцоох музейд зочилсон." },
+            { id: 9, en: "He bought a bright rug for the bedroom.", mn: "Тэр унтлагын өрөөндөө тод өнгөтэй хивс худалдаж авсан." },
+            { id: 10, en: "They watched a movie at the cinema in town.", mn: "Тэд хотын кино театрт кино үзсэн." },
+            { id: 11, en: "I was vacuuming the floor when my neighbour arrived.", mn: "Хөрш маань ирэх үед би шалаа тоос соруулж байсан." },
+            { id: 12, en: "She was cooking in the kitchen while I was cleaning the bathroom.", mn: "Намайг угаалгын өрөө цэвэрлэж байх хооронд тэр гал тогоонд хоол хийж байсан." },
+            { id: 13, en: "The children were playing noisily in the garden.", mn: "Хүүхдүүд цэцэрлэгт дуу шуутай тоглож байсан." },
+            { id: 14, en: "My father was repairing the roof carefully.", mn: "Аав маань дээврийг анхааралтай засаж байсан." },
+            { id: 15, en: "We were walking slowly near the park yesterday evening.", mn: "Өчигдөр орой бид цэцэрлэгт хүрээлэнгийн ойролцоо алгуурхан алхаж байсан." }
+        ];
+
+        window.state = {
+            view: 'login',
+            name: '',
+            grade: '7А',
+            quizSet: [],
+            currentIndex: 0,
+            answers: [],
+            adminData: [],
+            showFeedback: false,
+            currentResult: null,
+            warnings: 0,
+            isTerminated: false,
+            user: null,
+            resultsUnsubscribe: null,
+            isLoadingResults: false
+        };
+
+        function showModal(msg, icon = "⚠️") {
+            document.getElementById('modal-msg').innerText = msg;
+            document.getElementById('modal-icon').innerText = icon;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() { 
+            document.getElementById('modal').classList.remove('active'); 
+            if (window.state.isTerminated) {
+                window.state.view = 'result';
+                render();
+            }
+        }
+        
+        function openAdminModal() { document.getElementById('admin-modal').classList.add('active'); }
+        function closeAdminModal() { document.getElementById('admin-modal').classList.remove('active'); }
+
+        function submitAdminPass() {
+            const passInp = document.getElementById('admin-pass');
+            if (passInp.value === "89062622$@") {
+                window.state.view = 'admin';
+                closeAdminModal();
+                passInp.value = "";
+                render();
+                window.fetchResults();
+            } else {
+                showModal("Нууц код буруу байна!");
+            }
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden' && window.state.view === 'exercise') {
+                window.state.warnings++;
+                if (window.state.warnings === 1) {
+                    showModal("САНУУЛГА: Таб солихыг хориглоно! Дахин шилжвэл шалгалт шууд дуусна.");
+                } else if (window.state.warnings >= 2) {
+                    window.state.isTerminated = true;
+                    saveResult(true);
+                }
+            }
+        });
+
+        window.fetchResults = function() {
+            if (!window.db || !window.state.user) return;
+            
+            window.state.isLoadingResults = true;
+            if (window.state.resultsUnsubscribe) window.state.resultsUnsubscribe();
+
+            const resultsRef = window.firestore.collection(window.db, 'artifacts', window.appId, 'public', 'data', 'results');
+            
+            window.state.resultsUnsubscribe = window.firestore.onSnapshot(resultsRef, (snapshot) => {
+                window.state.adminData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                window.state.isLoadingResults = false;
+                if (window.state.view === 'admin') render();
+            }, (error) => {
+                console.error("Firestore error:", error);
+                window.state.isLoadingResults = false;
+                showModal("Өгөгдөл татахад алдаа гарлаа.");
+            });
+        };
+
+        function normalizeText(text) {
+            return text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").replace(/\s{2,}/g, " ").trim();
+        }
+
+        function render() {
+            const main = document.getElementById('main-content');
+            const actions = document.getElementById('header-actions');
+            const s = window.state;
+
+            if (s.view === 'login') {
+                actions.innerHTML = `<button onclick="openAdminModal()" class="text-xs font-bold text-slate-400 border-2 border-slate-200 px-2 py-1 rounded-lg">Admin</button>`;
+                main.innerHTML = `
+                    <div class="bg-white p-8 rounded-[2.5rem] card-pop text-center">
+                        <div class="mb-6 floating"><span class="text-6xl">🎒</span></div>
+                        <h2 class="header-font text-2xl mb-8 uppercase text-slate-800">Тавтай морил</h2>
+                        <div class="space-y-6">
+                            <input id="stu-name" class="w-full p-5 border-4 border-slate-800 rounded-2xl font-bold outline-none" placeholder="Чиний нэр..." value="${s.name}">
+                            <select id="stu-grade" class="w-full p-5 border-4 border-slate-800 rounded-2xl font-black outline-none">
+                                ${['7А', '7Б', '7В', '7Г', '7Д'].map(g => `<option value="${g}" ${s.grade === g ? 'selected' : ''}>${g} анги</option>`).join('')}
+                            </select>
+                            <button onclick="startQuiz()" class="w-full bg-yellow-400 py-6 rounded-2xl font-black text-xl btn-pop uppercase text-slate-800">Эхлэх 🚀</button>
+                        </div>
+                    </div>`;
+            } else if (s.view === 'exercise') {
+                const current = s.quizSet[s.currentIndex];
+                actions.innerHTML = `<span class="text-xs font-bold bg-yellow-100 text-yellow-700 px-2 py-1 rounded-lg">Хяналт идэвхтэй</span>`;
+                
+                let progressHtml = `<div class="flex flex-wrap justify-center gap-2 mb-8">`;
+                for(let i=0; i<15; i++) {
+                    let cls = 'step-pending';
+                    if (i === s.currentIndex) cls = 'step-current';
+                    else if (s.answers[i]) cls = s.answers[i].correct ? 'step-correct' : 'step-wrong';
+                    progressHtml += `<div class="step-circle ${cls}">${i+1}</div>`;
+                }
+                progressHtml += `</div>`;
+
+                main.innerHTML = `
+                    <div class="bg-white p-6 rounded-[2.5rem] card-pop text-center">
+                        ${progressHtml}
+                        <p class="text-lg font-bold mb-4 text-slate-600">
+                            ${current.type === 'english' ? 'Сонсоод англиар бичнэ үү:' : 'Сонсоод монголоор орчуулж бичнэ үү:'}
+                        </p>
+                        
+                        ${!s.showFeedback ? `
+                            <button onclick="playAudio()" class="w-20 h-20 bg-red-500 text-white rounded-full mx-auto border-4 border-slate-800 shadow-[4px_4px_0px_#1e293b] mb-6 flex items-center justify-center active:scale-95 transition-transform">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                            </button>
+                            <input id="ans-input" class="w-full p-4 text-center text-xl font-black border-4 border-slate-800 rounded-2xl mb-4 outline-none" placeholder="Хариулт..." onkeydown="if(event.key==='Enter') checkAnswer(this.value)" autocomplete="off">
+                            <button onclick="checkAnswer(document.getElementById('ans-input').value)" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black btn-pop uppercase">Шалгах ✅</button>
+                        ` : `
+                            <div class="p-6 rounded-3xl border-4 ${s.currentResult.correct ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'} mb-8 text-left">
+                                <div class="text-2xl font-black mb-2 ${s.currentResult.correct ? 'text-green-700' : 'text-red-700'}">${s.currentResult.correct ? 'Зөв! ✅' : 'Буруу! ❌'}</div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Зөв хариулт:</p>
+                                <p class="font-black text-lg text-slate-800">${current.type === 'english' ? current.en : current.mn}</p>
+                            </div>
+                            <button onclick="goNext()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black btn-pop uppercase">${s.currentIndex < 14 ? 'Дараагийнх ➜' : 'Дуусгах 🏁'}</button>
+                        `}
+                    </div>`;
+                if (!s.showFeedback) setTimeout(() => document.getElementById('ans-input')?.focus(), 200);
+            } else if (s.view === 'result') {
+                const score = s.answers.filter(a => a && a.correct).length;
+                main.innerHTML = `
+                    <div class="bg-white p-10 rounded-[2.5rem] card-pop text-center">
+                        <div class="text-5xl mb-4">${s.isTerminated ? '⚠️' : '🎉'}</div>
+                        <h2 class="header-font text-3xl mb-4 uppercase text-slate-800">${s.isTerminated ? 'Шалгалт зогссон' : 'Баяр хүргэе!'}</h2>
+                        <div class="text-6xl font-black text-blue-600 mb-8">${score}/15</div>
+                        <p class="text-slate-500 font-bold mb-8">Чиний дүн багшийн хяналтын хэсэгт хадгалагдлаа.</p>
+                        <button onclick="location.reload()" class="w-full py-6 bg-slate-900 text-white rounded-2xl font-black btn-pop uppercase">Дахин эхлэх</button>
+                    </div>`;
+            } else if (s.view === 'admin') {
+                actions.innerHTML = `<button onclick="window.state.view='login'; render()" class="text-xs font-bold text-blue-600 border-2 border-blue-100 px-3 py-1 rounded-lg">Гарах</button>`;
+                main.innerHTML = `
+                    <div class="bg-white p-6 rounded-[2rem] card-pop h-[80vh] flex flex-col">
+                        <h2 class="header-font text-xl mb-6 uppercase text-center text-slate-800">Хяналтын самбар</h2>
+                        <div class="overflow-y-auto flex-grow custom-scrollbar space-y-4 pr-1">
+                            ${s.isLoadingResults ? `
+                                <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+                                    <div class="animate-spin mb-4 text-3xl">⌛</div>
+                                    <p class="font-bold italic">Мэдээлэл ачаалж байна...</p>
+                                </div>` : 
+                                (s.adminData.length === 0 ? `
+                                <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+                                    <p class="font-bold italic">Одоогоор шалгалт өгсөн сурагч алга.</p>
+                                </div>` : 
+                                s.adminData.sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).map(res => `
+                                <div class="p-4 ${res.isTerminated ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-800'} rounded-2xl border-2 flex justify-between items-center">
+                                    <div class="overflow-hidden">
+                                        <div class="font-black text-slate-800 truncate">${res.name} ${res.isTerminated ? '<span class="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded ml-1">ЗӨРЧИЛ</span>' : ''}</div>
+                                        <div class="text-[10px] text-slate-500 font-bold uppercase">${res.grade} • ${res.timestamp ? new Date(res.timestamp.seconds * 1000).toLocaleString('mn-MN', {hour: '2-digit', minute:'2-digit'}) : '...'}</div>
+                                    </div>
+                                    <div class="text-2xl font-black ml-4 shrink-0 ${res.score >= 12 ? 'text-green-500' : 'text-blue-500'}">${res.score}/15</div>
+                                </div>`).join(''))}
+                        </div>
+                    </div>`;
+            }
+        }
+
+        function startQuiz() {
+            const nameInp = document.getElementById('stu-name');
+            const gradeInp = document.getElementById('stu-grade');
+            if (!nameInp.value.trim()) return showModal("Нэрээ оруулна уу!");
+            
+            window.state.name = nameInp.value.trim();
+            window.state.grade = gradeInp.value;
+            window.state.warnings = 0;
+            window.state.isTerminated = false;
+
+            const shuffled = [...SENTENCE_DATA].sort(() => 0.5 - Math.random());
+            window.state.quizSet = shuffled.slice(0, 15).map((item, idx) => ({
+                ...item,
+                type: idx < 8 ? 'english' : 'mongolian'
+            }));
+
+            window.state.currentIndex = 0;
+            window.state.answers = [];
+            window.state.showFeedback = false;
+            window.state.view = 'exercise';
+            render();
+        }
+
+        function playAudio() {
+            const current = window.state.quizSet[window.state.currentIndex];
+            const audio = new Audio(`${current.id}.mp3`);
+            audio.play().catch(() => showModal(`${current.id}.mp3 файл олдсонгүй.`));
+        }
+
+        function checkAnswer(val) {
+            if (!val.trim() || window.state.showFeedback) return;
+            const current = window.state.quizSet[window.state.currentIndex];
+            const isCorrect = normalizeText(current.type === 'english' ? current.en : current.mn) === normalizeText(val);
+            window.state.currentResult = { correct: isCorrect, studentAns: val.trim() };
+            window.state.answers[window.state.currentIndex] = window.state.currentResult;
+            window.state.showFeedback = true;
+            render();
+        }
+
+        function goNext() {
+            if (window.state.currentIndex < 14) {
+                window.state.currentIndex++;
+                window.state.showFeedback = false;
+                render();
+            } else {
+                saveResult(false);
+            }
+        }
+
+        async function saveResult(isTerminated = false) {
+            // UI-ийг шууд шилжүүлэх (Firestore хариуг хүлээлгүйгээр)
+            window.state.view = 'result';
+            window.state.isTerminated = isTerminated;
+            render();
+
+            if (!window.state.user) return;
+            
+            const score = window.state.answers.filter(a => a && a.correct).length;
+            const data = {
+                name: window.state.name,
+                grade: window.state.grade,
+                score: score,
+                isTerminated: isTerminated,
+                timestamp: window.firestore.serverTimestamp()
+            };
+
+            try {
+                const coll = window.firestore.collection(window.db, 'artifacts', window.appId, 'public', 'data', 'results');
+                await window.firestore.addDoc(coll, data);
+            } catch (e) { 
+                console.error("Firebase save failed:", e); 
+            }
+        }
+
+        window.onload = render;
+    </script>
+</body>
+</html>
