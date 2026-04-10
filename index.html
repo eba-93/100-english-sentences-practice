@@ -59,7 +59,7 @@
 
     <div id="app" class="max-w-xl mx-auto min-h-screen flex flex-col p-4">
         <header class="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl border-4 border-slate-800 shadow-[4px_4px_0px_#1e293b]">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2" onclick="location.reload()" style="cursor: pointer;">
                 <span class="text-2xl">🇺🇸</span>
                 <h1 class="header-font text-xl text-slate-800 tracking-wider">SUPER LISTENING</h1>
                 <span class="text-2xl">🇬🇧</span>
@@ -155,7 +155,8 @@
             warnings: 0,
             isTerminated: false,
             user: null,
-            resultsUnsubscribe: null
+            resultsUnsubscribe: null,
+            isLoadingResults: false
         };
 
         function showModal(msg, icon = "⚠️") {
@@ -175,16 +176,13 @@
         function openAdminModal() { document.getElementById('admin-modal').classList.add('active'); }
         function closeAdminModal() { document.getElementById('admin-modal').classList.remove('active'); }
 
-        async function submitAdminPass() {
-            const pass = document.getElementById('admin-pass').value;
-            if (pass === "89062622$@") {
+        function submitAdminPass() {
+            const passInp = document.getElementById('admin-pass');
+            if (passInp.value === "89062622$@") {
                 window.state.view = 'admin';
                 closeAdminModal();
+                passInp.value = "";
                 render();
-                // Нэвтрэлт бэлэн болохыг хүлээх
-                if (!window.state.user) {
-                    console.log("Waiting for auth...");
-                }
                 window.fetchResults();
             } else {
                 showModal("Нууц код буруу байна!");
@@ -207,17 +205,19 @@
         window.fetchResults = function() {
             if (!window.db || !window.state.user) return;
             
-            // Хуучин listener-ийг устгах
+            window.state.isLoadingResults = true;
             if (window.state.resultsUnsubscribe) window.state.resultsUnsubscribe();
 
             const resultsRef = window.firestore.collection(window.db, 'artifacts', window.appId, 'public', 'data', 'results');
             
             window.state.resultsUnsubscribe = window.firestore.onSnapshot(resultsRef, (snapshot) => {
                 window.state.adminData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                window.state.isLoadingResults = false;
                 if (window.state.view === 'admin') render();
             }, (error) => {
                 console.error("Firestore error:", error);
-                showModal("Өгөгдөл татахад алдаа гарлаа. Дахин оролдоно уу.");
+                window.state.isLoadingResults = false;
+                showModal("Өгөгдөл татахад алдаа гарлаа.");
             });
         };
 
@@ -260,23 +260,23 @@
                 main.innerHTML = `
                     <div class="bg-white p-6 rounded-[2.5rem] card-pop text-center">
                         ${progressHtml}
-                        <p class="text-lg font-bold mb-6 text-slate-600">
+                        <p class="text-lg font-bold mb-4 text-slate-600">
                             ${current.type === 'english' ? 'Сонсоод англиар бичнэ үү:' : 'Сонсоод монголоор орчуулж бичнэ үү:'}
                         </p>
                         
                         ${!s.showFeedback ? `
-                            <button onclick="playAudio()" class="w-24 h-24 bg-red-500 text-white rounded-full mx-auto border-4 border-slate-800 shadow-[4px_4px_0px_#1e293b] mb-8 flex items-center justify-center active:scale-95 transition-transform">
-                                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                            <button onclick="playAudio()" class="w-20 h-20 bg-red-500 text-white rounded-full mx-auto border-4 border-slate-800 shadow-[4px_4px_0px_#1e293b] mb-6 flex items-center justify-center active:scale-95 transition-transform">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
                             </button>
-                            <input id="ans-input" class="w-full p-5 text-center text-xl font-black border-4 border-slate-800 rounded-2xl mb-4 outline-none" placeholder="Хариулт..." onkeydown="if(event.key==='Enter') checkAnswer(this.value)" autocomplete="off">
+                            <input id="ans-input" class="w-full p-4 text-center text-xl font-black border-4 border-slate-800 rounded-2xl mb-4 outline-none" placeholder="Хариулт..." onkeydown="if(event.key==='Enter') checkAnswer(this.value)" autocomplete="off">
                             <button onclick="checkAnswer(document.getElementById('ans-input').value)" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black btn-pop uppercase">Шалгах ✅</button>
                         ` : `
                             <div class="p-6 rounded-3xl border-4 ${s.currentResult.correct ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'} mb-8 text-left">
                                 <div class="text-2xl font-black mb-2 ${s.currentResult.correct ? 'text-green-700' : 'text-red-700'}">${s.currentResult.correct ? 'Зөв! ✅' : 'Буруу! ❌'}</div>
-                                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Зөв хариулт:</p>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Зөв хариулт:</p>
                                 <p class="font-black text-lg text-slate-800">${current.type === 'english' ? current.en : current.mn}</p>
                             </div>
-                            <button onclick="goNext()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black btn-pop uppercase">Дараагийнх ➜</button>
+                            <button onclick="goNext()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black btn-pop uppercase">${s.currentIndex < 14 ? 'Дараагийнх ➜' : 'Дуусгах 🏁'}</button>
                         `}
                     </div>`;
                 if (!s.showFeedback) setTimeout(() => document.getElementById('ans-input')?.focus(), 200);
@@ -285,10 +285,10 @@
                 main.innerHTML = `
                     <div class="bg-white p-10 rounded-[2.5rem] card-pop text-center">
                         <div class="text-5xl mb-4">${s.isTerminated ? '⚠️' : '🎉'}</div>
-                        <h2 class="header-font text-3xl mb-4 uppercase text-slate-800">${s.isTerminated ? 'Шалгалт зогссон' : 'Дууслаа!'}</h2>
+                        <h2 class="header-font text-3xl mb-4 uppercase text-slate-800">${s.isTerminated ? 'Шалгалт зогссон' : 'Баяр хүргэе!'}</h2>
                         <div class="text-6xl font-black text-blue-600 mb-8">${score}/15</div>
-                        <p class="text-slate-500 font-bold mb-8">Дүн багшид илгээгдсэн.</p>
-                        <button onclick="window.state.view='login'; render()" class="w-full py-6 bg-slate-900 text-white rounded-2xl font-black btn-pop uppercase">Нүүр хуудас</button>
+                        <p class="text-slate-500 font-bold mb-8">Чиний дүн багшийн хяналтын хэсэгт хадгалагдлаа.</p>
+                        <button onclick="location.reload()" class="w-full py-6 bg-slate-900 text-white rounded-2xl font-black btn-pop uppercase">Дахин эхлэх</button>
                     </div>`;
             } else if (s.view === 'admin') {
                 actions.innerHTML = `<button onclick="window.state.view='login'; render()" class="text-xs font-bold text-blue-600 border-2 border-blue-100 px-3 py-1 rounded-lg">Гарах</button>`;
@@ -296,19 +296,23 @@
                     <div class="bg-white p-6 rounded-[2rem] card-pop h-[80vh] flex flex-col">
                         <h2 class="header-font text-xl mb-6 uppercase text-center text-slate-800">Хяналтын самбар</h2>
                         <div class="overflow-y-auto flex-grow custom-scrollbar space-y-4 pr-1">
-                            ${s.adminData.length === 0 ? `
+                            ${s.isLoadingResults ? `
                                 <div class="flex flex-col items-center justify-center py-20 text-slate-400">
-                                    <div class="animate-spin mb-4">⌛</div>
+                                    <div class="animate-spin mb-4 text-3xl">⌛</div>
                                     <p class="font-bold italic">Мэдээлэл ачаалж байна...</p>
                                 </div>` : 
+                                (s.adminData.length === 0 ? `
+                                <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+                                    <p class="font-bold italic">Одоогоор шалгалт өгсөн сурагч алга.</p>
+                                </div>` : 
                                 s.adminData.sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).map(res => `
-                                <div class="p-4 ${res.isTerminated ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-800'} rounded-2xl border-2 flex justify-between items-center">
+                                <div class="p-4 ${res.isTerminated ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-800'} rounded-2xl border-2 flex justify-between items-center">
                                     <div class="overflow-hidden">
                                         <div class="font-black text-slate-800 truncate">${res.name} ${res.isTerminated ? '<span class="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded ml-1">ЗӨРЧИЛ</span>' : ''}</div>
                                         <div class="text-[10px] text-slate-500 font-bold uppercase">${res.grade} • ${res.timestamp ? new Date(res.timestamp.seconds * 1000).toLocaleString('mn-MN', {hour: '2-digit', minute:'2-digit'}) : '...'}</div>
                                     </div>
                                     <div class="text-2xl font-black ml-4 shrink-0 ${res.score >= 12 ? 'text-green-500' : 'text-blue-500'}">${res.score}/15</div>
-                                </div>`).join('')}
+                                </div>`).join(''))}
                         </div>
                     </div>`;
             }
@@ -376,12 +380,12 @@
             try {
                 const coll = window.firestore.collection(window.db, 'artifacts', window.appId, 'public', 'data', 'results');
                 await window.firestore.addDoc(coll, data);
-            } catch (e) { console.error("Save error:", e); }
-            
-            if (!isTerminated) {
-                window.state.view = 'result';
-                render();
+            } catch (e) { 
+                console.error("Save error:", e); 
             }
+            
+            window.state.view = 'result';
+            render();
         }
 
         window.onload = render;
