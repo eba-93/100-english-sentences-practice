@@ -152,6 +152,7 @@
             currentResult: null,
             warnings: 0,
             isTerminated: false,
+            finishTime: null,
             user: null,
             resultsUnsubscribe: null,
             isLoadingResults: false
@@ -287,12 +288,16 @@
                 if (!s.showFeedback && current.type === 'english') setTimeout(() => document.getElementById('ans-input')?.focus(), 200);
             } else if (s.view === 'result') {
                 const score = s.answers.filter(a => a && a.correct).length;
+                const timeStr = s.finishTime ? new Date(s.finishTime).toLocaleString('mn-MN') : '';
                 main.innerHTML = `
                     <div class="bg-white p-10 rounded-[2.5rem] card-pop text-center">
                         <div class="text-5xl mb-4">${s.isTerminated ? '⚠️' : '🎉'}</div>
-                        <h2 class="header-font text-3xl mb-4 uppercase text-slate-800">${s.isTerminated ? 'Шалгалт зогссон' : 'Баяр хүргэе!'}</h2>
-                        <div class="text-6xl font-black text-blue-600 mb-8">${score}/15</div>
-                        <p class="text-slate-500 font-bold mb-8">Чиний дүн багшийн хяналтын хэсэгт хадгалагдлаа.</p>
+                        <h2 class="header-font text-3xl mb-4 uppercase text-slate-800">${s.isTerminated ? 'Шалгалт зогссон' : 'Сайн байна, ' + s.name + '!'}</h2>
+                        <div class="text-6xl font-black text-blue-600 mb-4">${score}/15</div>
+                        <div class="space-y-2 mb-8">
+                            <p class="text-slate-500 font-bold">Чиний дүн багшийн хяналтын хэсэгт хадгалагдлаа.</p>
+                            <p class="text-[12px] text-slate-400 font-bold uppercase tracking-wider">Дууссан хугацаа: ${timeStr}</p>
+                        </div>
                         <button onclick="location.reload()" class="w-full py-6 bg-slate-900 text-white rounded-2xl font-black btn-pop uppercase">Дахин эхлэх</button>
                     </div>`;
             } else if (s.view === 'admin') {
@@ -332,13 +337,13 @@
             window.state.grade = gradeInp.value;
             window.state.warnings = 0;
             window.state.isTerminated = false;
+            window.state.finishTime = null;
 
             const shuffled = [...SENTENCE_DATA].sort(() => 0.5 - Math.random());
             window.state.quizSet = shuffled.slice(0, 15).map((item, idx) => {
                 const type = idx < 8 ? 'english' : 'mongolian';
                 let options = [];
                 if (type === 'mongolian') {
-                    // Зөв хариултаас гадна өөр 2 буруу хариулт бэлдэх
                     const others = SENTENCE_DATA.filter(s => s.id !== item.id).sort(() => 0.5 - Math.random()).slice(0, 2);
                     options = [item.mn, ...others.map(o => o.mn)].sort(() => 0.5 - Math.random());
                 }
@@ -379,6 +384,7 @@
         }
 
         async function saveResult(isTerminated = false) {
+            window.state.finishTime = new Date();
             window.state.view = 'result';
             window.state.isTerminated = isTerminated;
             render();
