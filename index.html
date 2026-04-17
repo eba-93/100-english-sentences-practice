@@ -53,13 +53,16 @@
         .modal-overlay.active {
             display: flex;
         }
+
+        /* Arial font for results */
+        .arial-font { font-family: Arial, Helvetica, sans-serif !important; }
     </style>
 </head>
 <body class="min-h-screen">
 
     <div id="app" class="max-w-xl mx-auto min-h-screen flex flex-col p-4">
         <header class="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl border-4 border-slate-800 shadow-[4px_4px_0px_#1e293b]">
-            <div class="flex items-center gap-2" onclick="location.reload()" style="cursor: pointer;">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="location.reload()">
                 <span class="text-2xl">🇺🇸</span>
                 <h1 class="header-font text-xl text-slate-800 tracking-wider">SUPER LISTENING</h1>
                 <span class="text-2xl">🇬🇧</span>
@@ -89,9 +92,9 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = JSON.parse(__firebase_config);
         const app = initializeApp(firebaseConfig);
@@ -105,13 +108,16 @@
         window.firestore = { collection, addDoc, onSnapshot, serverTimestamp, query };
 
         const initAuth = async () => {
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-            await signInAnonymously(auth);
-          }
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth error:", error);
+            }
         };
-        initAuth().catch(console.error);
 
         onAuthStateChanged(auth, (user) => {
             window.state.user = user;
@@ -119,26 +125,34 @@
                 window.fetchResults();
             }
         });
+
+        initAuth();
     </script>
 
     <script>
-        const SENTENCE_DATA = [
-            { id: 1, en: "I live in a modern house near the park.", mn: "Би цэцэрлэгт хүрээлэнгийн ойролцоо орчин үеийн байшинд амьдардаг." },
-            { id: 2, en: "The comfortable sofa is in front of the window.", mn: "Тухтай буйдан цонхны өмнө байна." },
-            { id: 3, en: "My neighbour happily cleans the floor every morning.", mn: "Миний хөрш өглөө бүр шалаа баяртайгаар цэвэрлэдэг." },
-            { id: 4, en: "The plant is on the coffee table in the living room.", mn: "Ургамал зочны өрөөний кофены ширээн дээр байна." },
-            { id: 5, en: "We carefully do the washing up after dinner.", mn: "Бид оройн хоолны дараа аяга тавгаа болгоомжтой угаадаг." },
-            { id: 6, en: "Yesterday I cleaned the kitchen quickly.", mn: "Өчигдөр би гал тогоогоо хурдан цэвэрлэсэн." },
-            { id: 7, en: "My sister tidied her room perfectly yesterday.", mn: "Миний дүү өчигдөр өрөөгөө маш сайн цэгцэлсэн." },
-            { id: 8, en: "We visited the museum near the library last week.", mn: "Бид өнгөрсөн долоо хоногт номын сангийн ойролцоох музейд зочилсон." },
-            { id: 9, en: "He bought a bright rug for the bedroom.", mn: "Тэр унтлагын өрөөндөө тод өнгөтэй хивс худалдаж авсан." },
-            { id: 10, en: "They watched a movie at the cinema in town.", mn: "Тэд хотын кино театрт кино үзсэн." },
-            { id: 11, en: "I was vacuuming the floor when my neighbour arrived.", mn: "Хөрш маань ирэх үед би шалаа тоос соруулж байсан." },
-            { id: 12, en: "She was cooking in the kitchen while I was cleaning the bathroom.", mn: "Намайг угаалгын өрөө цэвэрлэж байх хооронд тэр гал тогоонд хоол хийж байсан." },
-            { id: 13, en: "The children were playing noisily in the garden.", mn: "Хүүхдүүд цэцэрлэгт дуу шуутай тоглож байсан." },
-            { id: 14, en: "My father was repairing the roof carefully.", mn: "Аав маань дээврийг анхааралтай засаж байсан." },
-            { id: 15, en: "We were walking slowly near the park yesterday evening.", mn: "Өчигдөр орой бид цэцэрлэгт хүрээлэнгийн ойролцоо алгуурхан алхаж байсан." }
-        ];
+        const SENTENCE_DATA = Array.from({ length: 100 }, (_, i) => ({
+            id: i + 1,
+            en: [
+                "I live in a modern house near the park.", "The comfortable sofa is in front of the window.", 
+                "My neighbour happily cleans the floor every morning.", "The plant is on the coffee table in the living room.",
+                "We carefully do the washing up after dinner.", "Yesterday I cleaned the kitchen quickly.",
+                "My sister tidied her room perfectly yesterday.", "We visited the museum near the library last week.",
+                "He bought a bright rug for the bedroom.", "They watched a movie at the cinema in town.",
+                "I was vacuuming the floor when my neighbour arrived.", "She was cooking in the kitchen while I was cleaning the bathroom.",
+                "The children were playing noisily in the garden.", "My father was repairing the roof carefully.",
+                "We were walking slowly near the park yesterday evening."
+            ][i % 15],
+            mn: [
+                "Би цэцэрлэгт хүрээлэнгийн ойролцоо орчин үеийн байшинд амьдардаг.", "Тухтай буйдан цонхны өмнө байна.", 
+                "Миний хөрш өглөө бүр шалаа баяртайгаар цэвэрлэдэг.", "Ургамал зочны өрөөний кофены ширээн дээр байна.",
+                "Бид оройн хоолны дараа аяга тавгаа болгоомжтой угаадаг.", "Өчигдөр би гал тогоогоо хурдан цэвэрлэсэн.",
+                "Миний дүү өчигдөр өрөөгөө маш сайн цэгцэлсэн.", "Бид өнгөрсөн долоо хоногт номын сангийн ойролцоох музейд зочилсон.",
+                "Тэр унтлагын өрөөндөө тод өнгэй хивс худалдаж авсан.", "Тэд хотын кино театрт кино үзсэн.",
+                "Хөрш маань ирэх үед би шалаа тоос соруулж байсан.", "Намайг угаалгын өрөө цэвэрлэж байх хооронд тэр гал тогоонд хоол хийж байсан.",
+                "Хүүхдүүд цэцэрлэгт дуу шуутай тоглож байсан.", "Аав маань дээврийг анхааралтай засаж байсан.",
+                "Өчигдөр орой бид цэцэрлэгт хүрээлэнгийн ойролцоо алгуурхан алхаж байсан."
+            ][i % 15]
+        }));
 
         window.state = {
             view: 'login',
@@ -177,7 +191,7 @@
 
         function submitAdminPass() {
             const passInp = document.getElementById('admin-pass');
-            if (passInp.value === "89062622$@") {
+            if (passInp.value === "89062622") {
                 window.state.view = 'admin';
                 closeAdminModal();
                 passInp.value = "";
@@ -204,6 +218,7 @@
             if (!window.db || !window.state.user) return;
             window.state.isLoadingResults = true;
             if (window.state.resultsUnsubscribe) window.state.resultsUnsubscribe();
+            
             const resultsRef = window.firestore.collection(window.db, 'artifacts', window.appId, 'public', 'data', 'results');
             window.state.resultsUnsubscribe = window.firestore.onSnapshot(resultsRef, (snapshot) => {
                 window.state.adminData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -212,7 +227,6 @@
             }, (error) => {
                 console.error("Firestore error:", error);
                 window.state.isLoadingResults = false;
-                showModal("Өгөгдөл татахад алдаа гарлаа.");
             });
         };
 
@@ -229,11 +243,11 @@
                 actions.innerHTML = `<button onclick="openAdminModal()" class="text-xs font-bold text-slate-400 border-2 border-slate-200 px-2 py-1 rounded-lg">Admin</button>`;
                 main.innerHTML = `
                     <div class="bg-white p-8 rounded-[2.5rem] card-pop text-center">
-                        <div class="mb-6 floating"><span class="text-6xl">🎒</span></div>
+                        <div class="mb-6 floating text-6xl">🎒</div>
                         <h2 class="header-font text-2xl mb-8 uppercase text-slate-800">Тавтай морил</h2>
                         <div class="space-y-6">
                             <input id="stu-name" class="w-full p-5 border-4 border-slate-800 rounded-2xl font-bold outline-none" placeholder="Чиний нэр..." value="${s.name}">
-                            <select id="stu-grade" class="w-full p-5 border-4 border-slate-800 rounded-2xl font-black outline-none">
+                            <select id="stu-grade" class="w-full p-5 border-4 border-slate-800 rounded-2xl font-black outline-none bg-white">
                                 ${['7А', '7Б', '7В', '7Г', '7Д'].map(g => `<option value="${g}" ${s.grade === g ? 'selected' : ''}>${g} анги</option>`).join('')}
                             </select>
                             <button onclick="startQuiz()" class="w-full bg-yellow-400 py-6 rounded-2xl font-black text-xl btn-pop uppercase text-slate-800">Эхлэх 🚀</button>
@@ -288,17 +302,23 @@
                 if (!s.showFeedback && current.type === 'english') setTimeout(() => document.getElementById('ans-input')?.focus(), 200);
             } else if (s.view === 'result') {
                 const score = s.answers.filter(a => a && a.correct).length;
-                const timeStr = s.finishTime ? new Date(s.finishTime).toLocaleString('mn-MN') : '';
+                const timeStr = s.finishTime ? s.finishTime.toLocaleString('mn-MN') : new Date().toLocaleString('mn-MN');
                 main.innerHTML = `
-                    <div class="bg-white p-10 rounded-[2.5rem] card-pop text-center">
+                    <div id="result-view" class="bg-white p-10 rounded-[2.5rem] card-pop text-center arial-font">
                         <div class="text-5xl mb-4">${s.isTerminated ? '⚠️' : '🎉'}</div>
-                        <h2 class="header-font text-3xl mb-4 uppercase text-slate-800">${s.isTerminated ? 'Шалгалт зогссон' : 'Сайн байна, ' + s.name + '!'}</h2>
-                        <div class="text-6xl font-black text-blue-600 mb-4">${score}/15</div>
-                        <div class="space-y-2 mb-8">
-                            <p class="text-slate-500 font-bold">Чиний дүн багшийн хяналтын хэсэгт хадгалагдлаа.</p>
-                            <p class="text-[12px] text-slate-400 font-bold uppercase tracking-wider">Дууссан хугацаа: ${timeStr}</p>
+                        <h2 class="text-3xl mb-4 uppercase text-slate-800 font-bold">${s.isTerminated ? 'Шалгалт зогссон' : 'Сайн байна, ' + s.name + '!'}</h2>
+                        <div class="text-6xl font-bold text-blue-600 mb-4">${score}/15</div>
+                        <div class="space-y-4 mb-8">
+                            <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
+                                <p class="text-[12px] text-slate-400 font-bold uppercase tracking-wider mb-1">Сурагчийн нэр:</p>
+                                <p class="text-xl font-black text-slate-800">${s.name}</p>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
+                                <p class="text-[12px] text-slate-400 font-bold uppercase tracking-wider mb-1">Дууссан хугацаа:</p>
+                                <p class="text-md font-bold text-slate-700">${timeStr}</p>
+                            </div>
                         </div>
-                        <button onclick="location.reload()" class="w-full py-6 bg-slate-900 text-white rounded-2xl font-black btn-pop uppercase">Дахин эхлэх</button>
+                        <button onclick="location.reload()" class="w-full py-6 bg-slate-900 text-white rounded-2xl font-bold btn-pop uppercase">Дахин эхлэх</button>
                     </div>`;
             } else if (s.view === 'admin') {
                 actions.innerHTML = `<button onclick="window.state.view='login'; render()" class="text-xs font-bold text-blue-600 border-2 border-blue-100 px-3 py-1 rounded-lg">Гарах</button>`;
@@ -340,7 +360,9 @@
             window.state.finishTime = null;
 
             const shuffled = [...SENTENCE_DATA].sort(() => 0.5 - Math.random());
-            window.state.quizSet = shuffled.slice(0, 15).map((item, idx) => {
+            const selected15 = shuffled.slice(0, 15);
+
+            window.state.quizSet = selected15.map((item, idx) => {
                 const type = idx < 8 ? 'english' : 'mongolian';
                 let options = [];
                 if (type === 'mongolian') {
@@ -360,7 +382,7 @@
         function playAudio() {
             const current = window.state.quizSet[window.state.currentIndex];
             const audio = new Audio(`${current.id}.mp3`);
-            audio.play().catch(() => showModal(`${current.id}.mp3 файл олдсонгүй.`));
+            audio.play().catch(() => showModal(`${current.id}.mp3 файл олдсонгүй.`, "📁"));
         }
 
         function checkAnswer(val) {
@@ -385,19 +407,24 @@
 
         async function saveResult(isTerminated = false) {
             window.state.finishTime = new Date();
-            window.state.view = 'result';
             window.state.isTerminated = isTerminated;
+            
+            // UI-г шууд шинэчлэх (Хадгалахыг хүлээлгүй)
+            window.state.view = 'result';
             render();
 
-            if (!window.state.user) return;
+            if (!window.state.user || !window.db) return;
+
             const score = window.state.answers.filter(a => a && a.correct).length;
             const data = {
                 name: window.state.name,
                 grade: window.state.grade,
                 score: score,
                 isTerminated: isTerminated,
-                timestamp: window.firestore.serverTimestamp()
+                timestamp: window.firestore.serverTimestamp(),
+                uid: window.state.user.uid
             };
+            
             try {
                 const coll = window.firestore.collection(window.db, 'artifacts', window.appId, 'public', 'data', 'results');
                 await window.firestore.addDoc(coll, data);
