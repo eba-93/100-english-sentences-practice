@@ -54,7 +54,6 @@
             display: flex;
         }
 
-        /* Arial font for results */
         .arial-font { font-family: Arial, Helvetica, sans-serif !important; }
     </style>
 </head>
@@ -64,7 +63,7 @@
         <header class="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl border-4 border-slate-800 shadow-[4px_4px_0px_#1e293b]">
             <div class="flex items-center gap-2 cursor-pointer" onclick="location.reload()">
                 <span class="text-2xl">🇺🇸</span>
-                <h1 class="header-font text-xl text-slate-800 tracking-wider">SUPER LISTENING</h1>
+                <h1 class="header-font text-xl text-slate-800 tracking-wider uppercase">Listening</h1>
                 <span class="text-2xl">🇬🇧</span>
             </div>
             <div id="header-actions"></div>
@@ -82,7 +81,7 @@
 
     <div id="admin-modal" class="modal-overlay">
         <div class="bg-white rounded-[2rem] border-4 border-slate-800 p-8 max-w-sm w-full shadow-[8px_8px_0px_#1e293b]">
-            <h3 class="header-font text-xl mb-6 text-center text-slate-800 uppercase">Багш нэвтрэх</h3>
+            <h3 class="header-font text-xl mb-6 text-center text-slate-800 uppercase tracking-tighter">Багш нэвтрэх</h3>
             <input type="password" id="admin-pass" class="w-full p-4 border-4 border-slate-800 rounded-2xl mb-4 font-bold outline-none" placeholder="Нууц код">
             <div class="flex gap-3">
                 <button onclick="closeAdminModal()" class="flex-1 bg-slate-100 py-4 rounded-2xl font-bold">Буцах</button>
@@ -130,29 +129,116 @@
     </script>
 
     <script>
-        const SENTENCE_DATA = Array.from({ length: 100 }, (_, i) => ({
-            id: i + 1,
-            en: [
-                "I live in a modern house near the park.", "The comfortable sofa is in front of the window.", 
-                "My neighbour happily cleans the floor every morning.", "The plant is on the coffee table in the living room.",
-                "We carefully do the washing up after dinner.", "Yesterday I cleaned the kitchen quickly.",
-                "My sister tidied her room perfectly yesterday.", "We visited the museum near the library last week.",
-                "He bought a bright rug for the bedroom.", "They watched a movie at the cinema in town.",
-                "I was vacuuming the floor when my neighbour arrived.", "She was cooking in the kitchen while I was cleaning the bathroom.",
-                "The children were playing noisily in the garden.", "My father was repairing the roof carefully.",
-                "We were walking slowly near the park yesterday evening."
-            ][i % 15],
-            mn: [
-                "Би цэцэрлэгт хүрээлэнгийн ойролцоо орчин үеийн байшинд амьдардаг.", "Тухтай буйдан цонхны өмнө байна.", 
-                "Миний хөрш өглөө бүр шалаа баяртайгаар цэвэрлэдэг.", "Ургамал зочны өрөөний кофены ширээн дээр байна.",
-                "Бид оройн хоолны дараа аяга тавгаа болгоомжтой угаадаг.", "Өчигдөр би гал тогоогоо хурдан цэвэрлэсэн.",
-                "Миний дүү өчигдөр өрөөгөө маш сайн цэгцэлсэн.", "Бид өнгөрсөн долоо хоногт номын сангийн ойролцоох музейд зочилсон.",
-                "Тэр унтлагын өрөөндөө тод өнгэй хивс худалдаж авсан.", "Тэд хотын кино театрт кино үзсэн.",
-                "Хөрш маань ирэх үед би шалаа тоос соруулж байсан.", "Намайг угаалгын өрөө цэвэрлэж байх хооронд тэр гал тогоонд хоол хийж байсан.",
-                "Хүүхдүүд цэцэрлэгт дуу шуутай тоглож байсан.", "Аав маань дээврийг анхааралтай засаж байсан.",
-                "Өчигдөр орой бид цэцэрлэгт хүрээлэнгийн ойролцоо алгуурхан алхаж байсан."
-            ][i % 15]
-        }));
+        const sentencesRaw = [
+            { en: "I live in a modern house near the park.", mn: "Би цэцэрлэгт хүрээлэнгийн ойролцоо орчин үеийн байшинд амьдардаг." },
+            { en: "The comfortable sofa is in front of the window.", mn: "Тухтай буйдан цонхны өмнө байна." },
+            { en: "My neighbour happily cleans the floor every morning.", mn: "Миний хөрш өглөө бүр шалаа баяртайгаар цэвэрлэдэг." },
+            { en: "The plant is on the coffee table in the living room.", mn: "Ургамал зочны өрөөний кофены ширээн дээр байна." },
+            { en: "We carefully do the washing up after dinner.", mn: "Бид оройн хоолны дараа аяга тавгаа болгоомжтой угаадаг." },
+            { en: "Yesterday I cleaned the kitchen quickly.", mn: "Өчигдөр би гал тогоогоо хурдан цэвэрлэсэн." },
+            { en: "My sister tidied her room perfectly yesterday.", mn: "Миний дүү өчигдөр өрөөгөө маш сайн цэгцэлсэн." },
+            { en: "We visited the museum near the library last week.", mn: "Бид өнгөрсөн долоо хоногт номын сангийн ойролцоох музейд зочилсон." },
+            { en: "He bought a bright rug for the bedroom.", mn: "Тэр унтлагын өрөөндөө тод өнгэтэй хивс худалдаж авсан." },
+            { en: "They watched a movie at the cinema in town.", mn: "Тэд хотын кино театрт кино үзсэн." },
+            { en: "I was vacuuming the floor when my neighbour arrived.", mn: "Хөрш маань ирэх үед би шалаа тоос соруулж байсан." },
+            { en: "She was cooking in the kitchen while I was cleaning the bathroom.", mn: "Намайг угаалгын өрөө цэвэрлэж байх хооронд тэр гал тогоонд хоол хийж байсан." },
+            { en: "The children were playing noisily in the garden.", mn: "Хүүхдүүд цэцэрлэгт дуу шуутай тоглож байсан." },
+            { en: "My father was repairing the roof carefully.", mn: "Аав маань дээврийг анхааралтай засаж байсан." },
+            { en: "We were walking slowly near the park yesterday evening.", mn: "Өчигдөр орой бид цэцэрлэгт хүрээлэнгийн ойролцоо алгуурхан алхаж байсан." },
+            { en: "Tomorrow I will redecorate my living room.", mn: "Маргааш би зочны өрөөгөө дахин засна." },
+            { en: "We will visit the art gallery in town next week.", mn: "Бид ирэх долоо хоногт хотын уран зургийн галерейд зочилно." },
+            { en: "My family will stay in a comfortable hotel.", mn: "Манай гэр бүл тухтай зочид буудалд байрлах болно." },
+            { en: "I will put the dishes in the dishwasher after dinner.", mn: "Би оройн хоолны дараа аяга тавгаа аяга угаагч машинд хийнэ." },
+            { en: "They will travel quickly to the shopping centre.", mn: "Тэд худалдааны төв рүү хурдан явах болно." },
+            { en: "The beautiful garden is behind the house.", mn: "Байшингийн ард үзэсгэлэнтэй цэцэрлэг бий." },
+            { en: "The old castle is opposite the church.", mn: "Хуучин цайз сүмийн эсрэг талд байдаг." },
+            { en: "My brother made his bed early this morning.", mn: "Миний дүү өнөө өглөө эрт ороо зассан." },
+            { en: "She was reading a book near the window.", mn: "Тэр цонхны ойролцоо ном уншиж байсан." },
+            { en: "We will meet our neighbour at the cafe tomorrow.", mn: "Бид маргааш хөрштэйгөө кафе-д уулзана." },
+            { en: "I use my smartphone to check social media every day.", mn: "Би өдөр бүр сошиал медиагаа шалгахын тулд ухаалаг утсаа ашигладаг." },
+            { en: "My brother listens to music with wireless earbuds.", mn: "Миний ах утасгүй чихэвчээр хөгжим сонсдог." },
+            { en: "She charges her phone battery every night.", mn: "Тэр орой бүр утасныхаа батерейг цэнэглэдэг." },
+            { en: "We search the web for information on a website.", mn: "Бид вэбсайтаас мэдээлэл хайхын тулд интернэт ашигладаг." },
+            { en: "My father uses a desktop computer with a keyboard and screen.", mn: "Миний аав гар болон дэлгэц бүхий суурин компьютер ашигладаг." },
+            { en: "Yesterday I downloaded new apps on my smartphone.", mn: "Өчигдөр би ухаалаг утсан дээрээ шинэ апп-ууд татсан." },
+            { en: "My friend bought a new Bluetooth speaker last week.", mn: "Миний найз өнгөрсөн долоо хоногт шинэ Bluetooth чанга яригч худалдаж авсан." },
+            { en: "We saved many photos on the memory of the computer.", mn: "Бид компьютерын санах ойд олон зураг хадгалсан." },
+            { en: "I read interesting articles on an online forum yesterday.", mn: "Би өчигдөр онлайн форумаас сонирхолтой нийтлэлүүд уншсан." },
+            { en: "My sister shared photos on a social networking site.", mn: "Миний эгч олон нийтийн сүлжээний сайтад зургуудаа хуваалцсан." },
+            { en: "I was listening to podcasts when the internet connection became slow.", mn: "Интернэт холболт удаашрах үед би подкаст сонсож байсан." },
+            { en: "My brother was playing online games when the computer crashed.", mn: "Компьютер гацах үед миний дүү онлайн тоглоом тоглож байсан." },
+            { en: "She was editing videos on her laptop yesterday evening.", mn: "Тэр өчигдөр орой лаптоп дээрээ видео засварлаж байсан." },
+            { en: "We were chatting online while the teacher was speaking.", mn: "Багшийг ярьж байх хооронд бид онлайнаар чатлаж байсан." },
+            { en: "He was trying to fix a problem with the printer.", mn: "Тэр принтертэй холбоотой асуудлыг засах гэж оролдож байсан." },
+            { en: "Tomorrow I will buy a new tablet.", mn: "Маргааш би шинэ таблет худалдаж авна." },
+            { en: "I will install a computer program on my desktop computer.", mn: "Би суурин компьютер дээрээ компьютерын программ суулгах болно." },
+            { en: "We will upload videos to the website tomorrow.", mn: "Бид маргааш вэбсайт руу видео ачаалах болно." },
+            { en: "My friend will send messages and texts later.", mn: "Найз маань дараа нь мессеж болон текст илгээнэ." },
+            { en: "I will connect my USB cable to charge my phone.", mn: "Би утсаа цэнэглэхийн тулд USB кабелиа холбоно." },
+            { en: "The screen of my laptop is bright and modern.", mn: "Миний лаптопын дэлгэц тод бөгөөд орчин үеийн." },
+            { en: "This hi-tech device is waterproof and very useful.", mn: "Энэхүү өндөр технологийн төхөөрөмж нь усны хамгаалалттай бөгөөд маш хэрэгцээтэй." },
+            { en: "My phone battery died yesterday.", mn: "Өчигдөр миний утасны батерей дууссан." },
+            { en: "The printer didn’t work, so I fixed the problem.", mn: "Принтер ажиллахгүй байсан тул би асуудлыг зассан." },
+            { en: "We will keep in touch and communicate online in the future.", mn: "Бид ирээдүйд холбоотой байж, онлайнаар харилцах болно." },
+            { en: "I have a cute cat as my pet.", mn: "Надад тэжээвэр амьтан болох хөөрхөн муур бий." },
+            { en: "My cat has soft fur and a long tail.", mn: "Миний муур зөөлөн үстэй, урт сүүлтэй." },
+            { en: "My sister feeds the rabbit every morning.", mn: "Миний дүү өглөө бүр туулайгаа тэжээдэг." },
+            { en: "The parrot has colourful feathers and a sharp beak.", mn: "Тоть нь өнгөлөг өдтэй, хурц хошуутай." },
+            { en: "We look after our pet carefully.", mn: "Бид тэжээвэр амьтнаа анхааралтай асарч халамжилдаг." },
+            { en: "Yesterday I saw a zebra at the zoo.", mn: "Өчигдөр би амьтны хүрээлэнд эрээн тахь харсан." },
+            { en: "My friend picked up a small kitten yesterday.", mn: "Миний найз өчигдөр жижигхэн муурын зулзага авсан." },
+            { en: "We visited the aquarium last week.", mn: "Бид өнгөрсөн долоо хоногт аквариумд зочилсон." },
+            { en: "I cleaned the cage of my hamster yesterday.", mn: "Би өчигдөр үхэр зусагныхаа торыг цэвэрлэсэн." },
+            { en: "The monkey climbed a tree quickly.", mn: "Сарвуу мод руу хурдан авирсан." },
+            { en: "The elephant was walking slowly in the zoo.", mn: "Заан амьтны хүрээлэнд алгуурхан алхаж байсан." },
+            { en: "The tiger was sleeping in its cage.", mn: "Бар тортой байсан." },
+            { en: "Children were watching the penguin happily.", mn: "Хүүхдүүд оцон шувууг баяртайгаар үзэж байсан." },
+            { en: "A butterfly was flying around the flowers.", mn: "Эрвээхэй цэцэгсийг тойрон нисэж байсан." },
+            { en: "The giraffe was eating leaves from a tall tree.", mn: "Анааш өндөр модноос навч идэж байсан." },
+            { en: "Tomorrow we will visit the zoo again.", mn: "Маргааш бид амьтны хүрээлэнд дахин зочлох болно." },
+            { en: "I will buy food for my hamster tomorrow.", mn: "Би маргааш үхэр зусагтаа хоол худалдаж авна." },
+            { en: "We will take our dog for a walk in the park.", mn: "Бид нохойгоо цэцэрлэгт хүрээлэнд салхилуулах болно." },
+            { en: "My friend will work with animals in the future.", mn: "Миний найз ирээдүйд амьтадтай ажиллах болно." },
+            { en: "I will visit the animal rescue centre next week.", mn: "Би ирэх долоо хоногт амьтан аврах төвд зочилно." },
+            { en: "I have seen a polar bear at the zoo.", mn: "Би амьтны хүрээлэнд цагаан баавгай харж байсан." },
+            { en: "We have visited the zoo many times.", mn: "Бид амьтны хүрээлэнд олон удаа зочилсон." },
+            { en: "My family has looked after a rabbit for two years.", mn: "Манай гэр бүл хоёр жилийн турш туулай асарч халамжилсан." },
+            { en: "I have fed my cat today.", mn: "Би өнөөдөр муураа тэжээсэн." },
+            { en: "We have learned a lot about wild animals.", mn: "Бид зэрлэг амьтдын талаар ихийг сурч мэдсэн." },
+            { en: "Do you wear a baseball cap in summer?", mn: "Чи зун бейсболын малгай өмсдөг үү?" },
+            { en: "I do not wear leather boots in winter.", mn: "Би өвөл савхин гутал өмсдөггүй." },
+            { en: "Does she like wearing a striped dress?", mn: "Түүнд судалтай даашинз өмсөх таалагддаг уу?" },
+            { en: "He does not wear glasses every day.", mn: "Тэр өдөр бүр нүдний шил өмсдөггүй." },
+            { en: "Do they buy new shoes on a shopping trip?", mn: "Тэд дэлгүүр хэсэхдээ шинэ гутал худалдаж авдаг уу?" },
+            { en: "Did you wear a jacket yesterday?", mn: "Чи өчигдөр хүрэм өмссөн үү?" },
+            { en: "I did not buy a cotton shirt last week.", mn: "Би өнгөрсөн долоо хоногт даавуун цамц худалдаж аваагүй." },
+            { en: "Did she wear a beautiful necklace at the party?", mn: "Тэр үдэшлэг дээр үзэсгэлэнтэй хүзүүний зүүлт зүүсэн байсан уу?" },
+            { en: "He did not wear his black coat yesterday.", mn: "Тэр өчигдөр хар пальто-гоо өмсөөгүй." },
+            { en: "Did they celebrate the festival in a fancy costume?", mn: "Тэд баяр наадмыг гоёмсог хувцас өмсөж тэмдэглэсэн үү?" },
+            { en: "Were you wearing snow boots in the winter?", mn: "Чи өвөл цасны гутал өмсөж байсан уу?" },
+            { en: "She was not wearing a baggy sweater yesterday.", mn: "Тэр өчигдөр шуудай шиг том цамц өмсөөгүй байсан." },
+            { en: "Were they wearing dark sunglasses outdoors?", mn: "Тэд гадаа хар нарны шил зүүсэн байсан уу?" },
+            { en: "Will you wear a warm coat next winter?", mn: "Чи ирэх өвөл дулаан пальто өмсөх үү?" },
+            { en: "I will not wear tight jeans tomorrow.", mn: "Би маргааш бариу жинс өмсөхгүй." },
+            { en: "Do you like listening to rock music in the evening?", mn: "Танд оройд рок хөгжим сонсох таалагддаг уу?" },
+            { en: "I do not read film reviews on social media.", mn: "Би сошиал медиагаас кино шүүмж уншдаггүй." },
+            { en: "Does your brother play the guitar in a band?", mn: "Чиний ах хамтлагт гитар тоглодог уу?" },
+            { en: "She does not enjoy hip hop music very much.", mn: "Түүнд хип хоп хөгжим тийм ч их таалагддаггүй." },
+            { en: "Did they watch a documentary about culture yesterday?", mn: "Тэд өчигдөр соёлын тухай баримтат кино үзсэн үү?" },
+            { en: "I did not watch the talent show last night.", mn: "Би өчигдөр орой авьяастнуудын шоу үзээгүй." },
+            { en: "Were you watching a video clip when I called you?", mn: "Намайг залгах үед чи видео клип үзэж байсан уу?" },
+            { en: "They were not reading the news headline in the newspaper. ", mn: "Тэд сонин дээрх мэдээний гарчгийг уншаагүй байсан." },
+            { en: "Will she sing a song on stage tomorrow?", mn: "Тэр маргааш тайзан дээр дуу дуулах уу?" },
+            { en: "We will not watch the reality show tonight.", mn: "Бид өнөө орой реалити шоу үзэхгүй." }
+        ];
+
+        const SENTENCE_DATA = sentencesRaw.map((data, i) => {
+            return {
+                id: i + 1,
+                en: data.en,
+                mn: data.mn
+            };
+        });
 
         window.state = {
             view: 'login',
@@ -244,7 +330,7 @@
                 main.innerHTML = `
                     <div class="bg-white p-8 rounded-[2.5rem] card-pop text-center">
                         <div class="mb-6 floating text-6xl">🎒</div>
-                        <h2 class="header-font text-2xl mb-8 uppercase text-slate-800">Тавтай морил</h2>
+                        <h2 class="header-font text-2xl mb-8 uppercase text-slate-800 tracking-tighter">Тавтай морил</h2>
                         <div class="space-y-6">
                             <input id="stu-name" class="w-full p-5 border-4 border-slate-800 rounded-2xl font-bold outline-none" placeholder="Чиний нэр..." value="${s.name}">
                             <select id="stu-grade" class="w-full p-5 border-4 border-slate-800 rounded-2xl font-black outline-none bg-white">
@@ -294,7 +380,7 @@
                             <div class="p-6 rounded-3xl border-4 ${s.currentResult.correct ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'} mb-8 text-left">
                                 <div class="text-2xl font-black mb-2 ${s.currentResult.correct ? 'text-green-700' : 'text-red-700'}">${s.currentResult.correct ? 'Зөв! ✅' : 'Буруу! ❌'}</div>
                                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Зөв хариулт:</p>
-                                <p class="font-black text-lg text-slate-800">${current.type === 'english' ? current.en : current.mn}</p>
+                                <p class="font-black text-lg text-slate-800 tracking-tight">${current.type === 'english' ? current.en : current.mn}</p>
                             </div>
                             <button onclick="goNext()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black btn-pop uppercase">${s.currentIndex < 14 ? 'Дараагийнх ➜' : 'Дуусгах 🏁'}</button>
                         `}
@@ -306,15 +392,15 @@
                 main.innerHTML = `
                     <div id="result-view" class="bg-white p-10 rounded-[2.5rem] card-pop text-center arial-font">
                         <div class="text-5xl mb-4">${s.isTerminated ? '⚠️' : '🎉'}</div>
-                        <h2 class="text-3xl mb-4 uppercase text-slate-800 font-bold">${s.isTerminated ? 'Шалгалт зогссон' : 'Сайн байна, ' + s.name + '!'}</h2>
-                        <div class="text-6xl font-bold text-blue-600 mb-4">${score}/15</div>
+                        <h2 class="text-3xl mb-4 uppercase text-slate-800 font-bold tracking-tight">${s.isTerminated ? 'Шалгалт зогссон' : 'Сайн байна, ' + s.name + '!'}</h2>
+                        <div class="text-7xl font-black text-blue-600 mb-6">${score}/15</div>
                         <div class="space-y-4 mb-8">
-                            <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
-                                <p class="text-[12px] text-slate-400 font-bold uppercase tracking-wider mb-1">Сурагчийн нэр:</p>
-                                <p class="text-xl font-black text-slate-800">${s.name}</p>
+                            <div class="bg-slate-50 p-5 rounded-[2rem] border-2 border-slate-100 flex flex-col items-center">
+                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-1">Сурагчийн нэр</p>
+                                <p class="text-2xl font-black text-slate-800">${s.name}</p>
                             </div>
-                            <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
-                                <p class="text-[12px] text-slate-400 font-bold uppercase tracking-wider mb-1">Дууссан хугацаа:</p>
+                            <div class="bg-slate-50 p-5 rounded-[2rem] border-2 border-slate-100 flex flex-col items-center">
+                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-1">Дууссан хугацаа</p>
                                 <p class="text-md font-bold text-slate-700">${timeStr}</p>
                             </div>
                         </div>
@@ -324,7 +410,7 @@
                 actions.innerHTML = `<button onclick="window.state.view='login'; render()" class="text-xs font-bold text-blue-600 border-2 border-blue-100 px-3 py-1 rounded-lg">Гарах</button>`;
                 main.innerHTML = `
                     <div class="bg-white p-6 rounded-[2rem] card-pop h-[80vh] flex flex-col">
-                        <h2 class="header-font text-xl mb-6 uppercase text-center text-slate-800">Хяналтын самбар</h2>
+                        <h2 class="header-font text-xl mb-6 uppercase text-center text-slate-800 tracking-tighter">Хяналтын самбар</h2>
                         <div class="overflow-y-auto flex-grow custom-scrollbar space-y-4 pr-1">
                             ${s.isLoadingResults ? `
                                 <div class="flex flex-col items-center justify-center py-20 text-slate-400">
@@ -359,15 +445,15 @@
             window.state.isTerminated = false;
             window.state.finishTime = null;
 
-            const shuffled = [...SENTENCE_DATA].sort(() => 0.5 - Math.random());
+            const shuffled = [...SENTENCE_DATA].sort(() => Math.random() - 0.5);
             const selected15 = shuffled.slice(0, 15);
 
             window.state.quizSet = selected15.map((item, idx) => {
                 const type = idx < 8 ? 'english' : 'mongolian';
                 let options = [];
                 if (type === 'mongolian') {
-                    const others = SENTENCE_DATA.filter(s => s.id !== item.id).sort(() => 0.5 - Math.random()).slice(0, 2);
-                    options = [item.mn, ...others.map(o => o.mn)].sort(() => 0.5 - Math.random());
+                    const others = SENTENCE_DATA.filter(s => s.id !== item.id).sort(() => Math.random() - 0.5).slice(0, 2);
+                    options = [item.mn, ...others.map(o => o.mn)].sort(() => Math.random() - 0.5);
                 }
                 return { ...item, type, options };
             });
@@ -380,9 +466,14 @@
         }
 
         function playAudio() {
-            const current = window.state.quizSet[window.state.currentIndex];
-            const audio = new Audio(`${current.id}.mp3`);
-            audio.play().catch(() => showModal(`${current.id}.mp3 файл олдсонгүй.`, "📁"));
+            const currentQuestion = window.state.quizSet[window.state.currentIndex];
+            const audioId = currentQuestion.id; 
+            const audio = new Audio(`${audioId}.mp3`);
+            
+            audio.play().catch(err => {
+                console.error("Audio error:", err);
+                showModal(`${audioId}.mp3 аудио файл олдсонгүй!`, "📁");
+            });
         }
 
         function checkAnswer(val) {
@@ -409,7 +500,6 @@
             window.state.finishTime = new Date();
             window.state.isTerminated = isTerminated;
             
-            // UI-г шууд шинэчлэх (Хадгалахыг хүлээлгүй)
             window.state.view = 'result';
             render();
 
